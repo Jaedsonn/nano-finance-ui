@@ -3,11 +3,28 @@ import { api } from "@/lib/api";
 import { Account } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Wallet } from "lucide-react";
+import { Plus, Wallet, Edit, Trash2 } from "lucide-react";
+import { AccountDialog } from "@/components/Accounts/AccountDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Accounts() {
+  const { toast } = useToast();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<Account | undefined>();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
 
   useEffect(() => {
     loadAccounts();
@@ -34,6 +51,41 @@ export default function Accounts() {
     }).format(value);
   };
 
+  const handleCreateAccount = () => {
+    setSelectedAccount(undefined);
+    setDialogOpen(true);
+  };
+
+  const handleEditAccount = (account: Account, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedAccount(account);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (account: Account, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setAccountToDelete(account);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!accountToDelete) return;
+
+    try {
+      await api.delete(`/account/delete/${accountToDelete.id}`);
+      toast({
+        title: "Sucesso",
+        description: "Conta excluída com sucesso",
+      });
+      loadAccounts();
+    } catch (error) {
+      console.error("Error deleting account:", error);
+    } finally {
+      setDeleteDialogOpen(false);
+      setAccountToDelete(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -51,7 +103,7 @@ export default function Accounts() {
             Gerencie suas contas bancárias
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={handleCreateAccount}>
           <Plus className="w-4 h-4" />
           Nova Conta
         </Button>
@@ -65,7 +117,7 @@ export default function Accounts() {
             <p className="text-muted-foreground text-center mb-6">
               Comece adicionando sua primeira conta bancária
             </p>
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={handleCreateAccount}>
               <Plus className="w-4 h-4" />
               Adicionar Conta
             </Button>
@@ -118,12 +170,57 @@ export default function Accounts() {
                       {formatCurrency(account.balance)}
                     </p>
                   </div>
+                  <div className="flex gap-2 pt-3 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-2"
+                      onClick={(e) => handleEditAccount(account, e)}
+                    >
+                      <Edit className="w-4 h-4" />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-destructive hover:text-destructive"
+                      onClick={(e) => handleDeleteClick(account, e)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Excluir
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <AccountDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        account={selectedAccount}
+        onSuccess={loadAccounts}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a conta "{accountToDelete?.name}"?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

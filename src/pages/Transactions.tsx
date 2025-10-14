@@ -3,7 +3,19 @@ import { api } from "@/lib/api";
 import { Transaction } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeftRight } from "lucide-react";
+import { Plus, ArrowLeftRight, Edit, Trash2 } from "lucide-react";
+import { TransactionDialog } from "@/components/Transactions/TransactionDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -15,8 +27,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 export default function Transactions() {
+  const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
 
   useEffect(() => {
     loadTransactions();
@@ -83,6 +100,39 @@ export default function Transactions() {
     return labels[type] || type;
   };
 
+  const handleCreateTransaction = () => {
+    setSelectedTransaction(undefined);
+    setDialogOpen(true);
+  };
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (transaction: Transaction) => {
+    setTransactionToDelete(transaction);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!transactionToDelete) return;
+
+    try {
+      await api.delete(`/transaction/${transactionToDelete.id}`);
+      toast({
+        title: "Sucesso",
+        description: "Transação excluída com sucesso",
+      });
+      loadTransactions();
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+    } finally {
+      setDeleteDialogOpen(false);
+      setTransactionToDelete(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -100,7 +150,7 @@ export default function Transactions() {
             Histórico de todas as suas transações
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={handleCreateTransaction}>
           <Plus className="w-4 h-4" />
           Nova Transação
         </Button>
@@ -120,7 +170,7 @@ export default function Transactions() {
               <p className="text-muted-foreground text-center mb-6">
                 Comece registrando sua primeira transação
               </p>
-              <Button className="gap-2">
+              <Button className="gap-2" onClick={handleCreateTransaction}>
                 <Plus className="w-4 h-4" />
                 Adicionar Transação
               </Button>
@@ -135,6 +185,7 @@ export default function Transactions() {
                     <TableHead>Tipo</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -164,6 +215,24 @@ export default function Transactions() {
                         {transaction.type === "Deposit" ? "+" : "-"}
                         {formatCurrency(transaction.amount)}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditTransaction(transaction)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteClick(transaction)}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -172,6 +241,31 @@ export default function Transactions() {
           )}
         </CardContent>
       </Card>
+
+      <TransactionDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        transaction={selectedTransaction}
+        onSuccess={loadTransactions}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta transação?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
