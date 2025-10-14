@@ -40,6 +40,11 @@ class ApiClient {
         headers,
       });
 
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Servidor retornou uma resposta inválida. Verifique se o backend está rodando.");
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
