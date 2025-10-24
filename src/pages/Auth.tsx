@@ -25,6 +25,8 @@ export default function Auth() {
   if (isAuthenticated) {
     navigate("/dashboard");
     return null;
+  } else{
+    navigate("/auth")
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -160,7 +162,7 @@ export default function Auth() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-age">Idade (opcional)</Label>
+                    <Label htmlFor="register-age">Idade</Label>
                     <Input
                       id="register-age"
                       type="number"
