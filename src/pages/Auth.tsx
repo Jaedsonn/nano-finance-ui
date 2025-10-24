@@ -26,7 +26,7 @@ export default function Auth() {
     navigate("/dashboard");
     return null;
   } else{
-    navigate("/auth")
+    navigate("/")
   }
 
   const handleLogin = async (e: React.FormEvent) => {
