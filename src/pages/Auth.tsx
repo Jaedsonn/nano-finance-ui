@@ -25,8 +25,6 @@ export default function Auth() {
   if (isAuthenticated) {
     navigate("/dashboard");
     return null;
-  } else{
-    navigate("/")
   }
 
   const handleLogin = async (e: React.FormEvent) => {
