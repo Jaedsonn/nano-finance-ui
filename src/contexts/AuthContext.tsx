@@ -23,22 +23,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const checkAuth = async () => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
       try {
         const response = await api.get<{ user: User }>("/user/info");
         if (response.data) {
           setUser(response.data.user);
         }
       } catch (error) {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        console.debug(error);
       }
-    }
     setIsLoading(false);
   };
 
   const login = async (email: string, password: string) => {
+    // eslint-disable-next-line no-useless-catch
     try {
       const response = await api.post<LoginResponse>("/auth/login", {
         email,
@@ -46,8 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (response.data) {
-        localStorage.setItem("accessToken", response.data.tokens.accessToken);
-        localStorage.setItem("refreshToken", response.data.tokens.refreshToken);
+        
         setUser(response.data.user);
         toast({
           title: "Bem-vindo!",
@@ -60,6 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (name: string, email: string, password: string, age?: number) => {
+    // eslint-disable-next-line no-useless-catch
     try {
       const response = await api.post<LoginResponse>("/auth/register", {
         name,
@@ -69,8 +66,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (response.data) {
-        localStorage.setItem("accessToken", response.data.tokens.accessToken);
-        localStorage.setItem("refreshToken", response.data.tokens.refreshToken);
         setUser(response.data.user);
         toast({
           title: "Conta criada!",
@@ -88,8 +83,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
       setUser(null);
       toast({
         title: "Até logo!",

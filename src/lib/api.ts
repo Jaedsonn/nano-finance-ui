@@ -16,33 +16,27 @@ class ApiClient {
     this.baseURL = baseURL;
   }
 
-  private getAuthToken(): string | null {
-    return localStorage.getItem("accessToken");
-  }
-
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const token = this.getAuthToken();
     const headers: HeadersInit = {
       "Content-Type": "application/json",
       ...options.headers,
     };
 
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         ...options,
         headers,
+        credentials: "include",
       });
 
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Servidor retornou uma resposta inválida. Verifique se o backend está rodando.");
+        throw new Error(
+          "Servidor retornou uma resposta inválida. Verifique se o backend está rodando."
+        );
       }
 
       const data = await response.json();
@@ -53,7 +47,8 @@ class ApiClient {
 
       return data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         variant: "destructive",
         title: "Erro",
